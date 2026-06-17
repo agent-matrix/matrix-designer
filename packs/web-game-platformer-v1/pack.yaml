@@ -1,0 +1,88 @@
+id: web-game-platformer-v1
+title: Web Game — Side-scrolling Platformer
+description: >
+  Design-pack for an original 2D arcade/platformer for the web. Encodes the lessons from
+  Contract Quest: design art direction, entity contracts, an asset manifest and a VISUAL
+  acceptance target before batching, and keep levels as DATA read by a fixed engine.
+
+rules:
+  - GAME-001   # a Design Brain is required before batching
+  - GAME-002   # use a scene architecture (Boot/Preload/Game/...)
+  - GAME-003   # no single-file game beyond a prototype
+  - GAME-004   # an asset manifest is required
+  - GAME-005   # entity contracts are required
+  - GAME-006   # a visual acceptance target is required
+  - GAME-007   # static/GitHub-Pages deployment
+  - GAME-008   # mobile controls required
+  - GAME-009   # no copyrighted assets (original art only)
+  - GAME-010   # every batch must preserve a playable state
+
+missing_decisions:
+  - art direction (palette, style, must-include / must-avoid)
+  - level architecture (data-driven so the engine never changes)
+  - asset plan (sprites, tiles, backgrounds, audio)
+  - entity system (player / enemy / collectible / power-up contracts)
+  - visual acceptance target (what 'done' LOOKS like)
+  - batch ownership map (which batch owns which file)
+
+risks:
+  - risk: Each batch improvises because there is no authoritative design.
+    severity: high
+    mitigation: Freeze art direction + entity contracts + asset manifest before batching.
+  - risk: Adding levels means sprawling, ungoverned edits.
+    severity: high
+    mitigation: Levels are config objects read by a fixed buildLevel() engine.
+
+visual_target:
+  style: "Cinematic pixel-art platformer; layered parallax; cohesive palette."
+  must_include:
+    - "layered parallax background (sky + far/near city, lit windows, light source)"
+    - "clear, correctly-rendered collectibles (round coins — never edge-on)"
+    - "readable HUD that never overlaps"
+  must_avoid:
+    - "flat single-gradient backgrounds"
+    - "title text overlapping itself"
+    - "any copyrighted (Mario/Nintendo/Sega) asset"
+
+architecture:
+  scenes: [Boot, Preload, Title, Story, Game, Victory, Credits]
+  systems:
+    - "Player (variable + double jump)"
+    - "Enemy (patrol / hop)"
+    - "Collectible"
+    - "PowerUp"
+    - "LevelBuilder (seeded, data-driven)"
+    - "HUD"
+    - "Audio"
+    - "Save (high score)"
+
+contracts:
+  entities:
+    - name: Player
+      purpose: Player-controlled hero.
+      behaviors: [run, variable jump, double jump, shield]
+    - name: LevelCfg
+      purpose: DATA contract for one level — engine reads it, never changes.
+      fields: [id, title, width, platforms, enemies, coinArcs, moving, seed]
+    - name: Coin
+      purpose: Collectible.
+      behaviors: ["bob only — always rendered round"]
+
+asset_manifest:
+  - { name: hero, kind: spritesheet, spec: "idle/run/jump frames" }
+  - { name: enemy, kind: sprite, spec: "patrolling foe" }
+  - { name: coin, kind: sprite, spec: "round coin — static, never edge-on" }
+  - { name: parallax, kind: background, spec: "sky + far/near city layers" }
+  - { name: tiles, kind: tile, spec: "ground + platform tiles" }
+  - { name: sfx, kind: audio, spec: "jump, coin, stomp, level-complete" }
+
+acceptance:
+  functional:
+    - "levels load in order, simplest to hardest"
+    - "movement, collectibles, enemies, power-ups all work"
+    - "typecheck clean; build produces dist/; zero runtime errors"
+  visual:
+    - "collectibles render correctly (round coins, not slivers)"
+    - "parallax + light source visible; title does not overlap"
+  performance: ["steady 60fps desktop; DPR-aware on mobile"]
+  accessibility: ["honor prefers-reduced-motion", "on-screen controls on touch"]

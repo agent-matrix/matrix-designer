@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "matrix-designer"
+version = "0.1.0"
+description = "The Brain of the Matrix ecosystem — turns an idea + chosen blueprint into a governed Design Bundle with every batch, via an agentic LLM crew. The 'batches guy'."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Ruslan Magana Vsevolodovna", email = "contact@ruslanmv.com" }]
+requires-python = ">=3.10"
+keywords = ["matrix-builder", "ai-agents", "design", "mcp", "crewai", "governance"]
+dependencies = [
+  "jsonschema>=4.20",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+agentic = ["crewai>=0.40"]          # the default agentic backend
+langgraph = ["langgraph>=0.2"]      # alternative backend
+mcp = ["mcp>=1.2"]                   # matrix-designer-mcp server runtime
+dev = ["pytest>=8", "ruff>=0.4"]
+
+[project.scripts]
+mdesign = "matrix_designer.cli:main"
+
+[project.urls]
+Homepage = "https://ruslanmv.com"
+Ecosystem = "https://github.com/agent-matrix/matrix-builder"
+
+[tool.setuptools.packages.find]
+where = ["src"]

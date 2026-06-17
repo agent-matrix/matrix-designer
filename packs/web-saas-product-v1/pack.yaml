@@ -1,0 +1,35 @@
+id: web-saas-product-v1
+title: Web SaaS Product
+description: >
+  Design-pack for a typical SaaS / web-app build. Encodes product brief, user flows,
+  information architecture, data model, API plan and a UI system before batching.
+
+rules: [APP-001, APP-002, APP-003, APP-004, APP-005]
+
+missing_decisions:
+  - product brief (who, what job, success metric)
+  - user flows (the critical paths)
+  - information architecture (navigation, pages)
+  - data model (entities + relations)
+  - API plan (routes, auth, contracts)
+  - UI system (tokens, components)
+
+risks:
+  - risk: Batches build screens before the data model is settled.
+    severity: high
+    mitigation: Freeze data_model + api_plan in the design-bundle first.
+
+architecture:
+  routes: ["/", "/login", "/app", "/settings"]
+  systems: ["Auth", "DataModel", "API", "UI system", "State", "Billing"]
+
+contracts:
+  data_model: ["User", "Account", "Session"]
+  api_plan: ["POST /auth/login", "GET /me", "GET /app/data"]
+
+acceptance:
+  functional:
+    - "project builds, lints, boots"
+    - "auth flow works end to end"
+    - "core CRUD path works with tests"
+  accessibility: ["keyboard navigable", "WCAG AA contrast"]

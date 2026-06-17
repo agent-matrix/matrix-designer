@@ -1,0 +1,43 @@
+# GAME-* design rules (proposed for Matrix Definitions). These VALIDATE a design-bundle;
+# AI proposes the design, these rules enforce it. severity: info|low|medium|high|critical
+rules:
+  - id: GAME-001
+    title: Design Brain required
+    severity: high
+    check: "design-bundle exists and is approved before any batch runs"
+  - id: GAME-002
+    title: Scene architecture
+    severity: medium
+    check: "architecture.scenes is non-empty"
+  - id: GAME-003
+    title: No single-file game beyond prototype
+    severity: medium
+    check: "production/enterprise quality uses an engine (not one index.html)"
+  - id: GAME-004
+    title: Asset manifest required
+    severity: high
+    check: "asset_manifest lists every sprite/tile/background/audio the batches need"
+  - id: GAME-005
+    title: Entity contracts required
+    severity: high
+    check: "contracts.entities defines the nouns shared across batches"
+  - id: GAME-006
+    title: Visual acceptance required
+    severity: high
+    check: "visual_target set AND acceptance.visual non-empty"
+  - id: GAME-007
+    title: Static deployment
+    severity: low
+    check: "framework_decision.deployment_target is static-pages or cloud"
+  - id: GAME-008
+    title: Mobile controls
+    severity: medium
+    check: "acceptance.accessibility mentions touch/on-screen controls"
+  - id: GAME-009
+    title: Original assets only
+    severity: critical
+    check: "visual_target.must_avoid forbids copyrighted assets"
+  - id: GAME-010
+    title: Always playable
+    severity: high
+    check: "every batch acceptance preserves a runnable/playable state"

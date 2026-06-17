@@ -1,0 +1,127 @@
+{
+  "schema_version": "matrix.designer.bundle/v1",
+  "design_id": "dsn-contract-quest-v2",
+  "project": "contract-quest",
+  "slug": "contract-quest",
+  "domain": "web-game",
+  "build_type": "app",
+  "quality_level": "production",
+
+  "source": {
+    "idea": "A premium, original, cinematic side-scrolling arcade platformer for the web — an 8-episode campaign with story, power-ups, a boss and credits — governed by the Ruslan Magana Definitions.",
+    "idea_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "references": [
+      { "kind": "image", "ref": "refs/target-arcade.png", "note": "SNES/Sega-style parallax city, lit windows, sun glow, pixel tiles" }
+    ]
+  },
+
+  "goal_analysis": {
+    "real_goal": "Prove that a governed AI pipeline can ship a coherent, premium platformer — not a primitive prototype — by designing the whole solution before any batch runs.",
+    "audience": "Enterprises evaluating safe, scalable AI-built software.",
+    "complexity": "large",
+    "missing_decisions": [
+      "art direction (the v1 prototype had none → flat look, overlapping title, slivered coins)",
+      "level architecture (how do levels scale without rewriting the engine?)",
+      "asset plan (which sprites/tiles/sounds exist?)",
+      "entity system (player/enemy/collectible contracts)",
+      "visual acceptance target (what does 'done' LOOK like?)",
+      "batch ownership map (which batch owns which file?)"
+    ],
+    "risks": [
+      { "risk": "Each batch improvises because there is no authoritative design.", "severity": "high", "mitigation": "Freeze art direction + entity contracts + asset manifest in this bundle before batching." },
+      { "risk": "Adding levels means sprawling, ungoverned edits.", "severity": "high", "mitigation": "Levels are DATA (episode config objects) read by a fixed engine; adding one = adding one object." },
+      { "risk": "Single-file game cannot scale past a prototype.", "severity": "medium", "mitigation": "Use a real engine (Phaser + Vite + TS) with scenes/entities/levels." }
+    ]
+  },
+
+  "framework_decision": {
+    "stack": ["Phaser 3", "TypeScript", "Vite 5"],
+    "rationale": "2D arcade with tilemaps, sprites, camera, particles, mobile controls, and GitHub Pages-compatible static output. Phaser gives the scene/entity/physics systems for free; Vite+TS give a typed, CI-friendly build.",
+    "rejected": [
+      { "option": "Single self-contained index.html (canvas)", "why_not": "Great for a prototype/jam, but cannot carry an 8-episode campaign without becoming an ungoverned mega-file (this was the v1 failure)." },
+      { "option": "Unity / Godot (WASM export)", "why_not": "Heavyweight for a 2D web arcade; large bundles; slower governed iteration." }
+    ],
+    "deployment_target": "static-pages"
+  },
+
+  "visual_target": {
+    "style": "SNES/Sega-inspired cinematic pixel-art platformer; warm sunset palette; layered parallax.",
+    "palette": ["#0b1026 sky-top", "#caa37a amber-horizon", "#ffa500 accent", "#9affc0 ui-green", "#7fb0ff ui-blue"],
+    "must_include": [
+      "robot hero (rounded body, glowing blue visor, yellow helmet)",
+      "layered parallax city with MANY warm lit windows + sun glow + light rays",
+      "round gold Contract Coins in arcs (never edge-on / never slivers)",
+      "holographic contract panels (rules, contract.yaml, access log)",
+      "RMD LOCKED metallic HUD",
+      "animated Matrix Gate portal at level end",
+      "footer: coded by GitPilot — under a Matrix Builder contract"
+    ],
+    "must_avoid": ["flat single-gradient backgrounds", "title text overlapping itself", "edge-on/squashed coins", "any Mario/Nintendo/Sega copyrighted asset"]
+  },
+
+  "architecture": {
+    "scenes": ["Boot", "Preload", "Title", "Story", "Game", "Victory", "Credits"],
+    "systems": ["Player (variable + double jump, shield)", "Enemy (BugBot patrol, Slime hop)", "Collectible (Coin/RMD star)", "PowerUp (shield/djump)", "LevelBuilder (seeded, data-driven)", "HUD", "Audio", "Save (high score)"],
+    "diagram": "idea -> Title -> Story(ep) -> Game(ep) -> (gate) -> Story(ep+1) ... -> Victory -> Credits"
+  },
+
+  "contracts": {
+    "entities": [
+      { "name": "Player", "purpose": "Player-controlled robot hero.", "fields": ["canDouble", "shielded", "usedDouble"], "behaviors": ["run", "variable jump", "double jump", "setShield(on)"] },
+      { "name": "EpisodeCfg", "purpose": "The DATA contract for one episode — engine reads it, never changes.", "fields": ["id", "title", "subtitle", "story[]", "width", "platforms", "enemies", "slimeRatio", "moving", "coinArcs", "shield", "djump", "boss", "accent", "seed"], "behaviors": ["consumed by buildEpisode(scene, cfg)"] },
+      { "name": "Coin", "purpose": "Round gold Contract Coin.", "fields": ["x", "y"], "behaviors": ["bob only (no squash) — always round"] }
+    ]
+  },
+
+  "asset_manifest": [
+    { "name": "hero", "kind": "spritesheet", "size": "28x36x4", "spec": "idle/run/jump frames, blue visor, yellow helmet" },
+    { "name": "bug", "kind": "sprite", "spec": "orange mechanical beetle, antennae, glowing eyes" },
+    { "name": "slime", "kind": "sprite", "spec": "glossy purple blob with a face" },
+    { "name": "coin", "kind": "sprite", "spec": "round gold coin with </> glyph — static, round" },
+    { "name": "sky / cityFar / cityNear", "kind": "background", "spec": "3 parallax layers, lit windows on near layer" },
+    { "name": "ground / metal", "kind": "tile", "spec": "mossy brick + cyan-edged metal" },
+    { "name": "gate / gate_swirl", "kind": "sprite", "spec": "animated Matrix Gate portal" },
+    { "name": "sfx", "kind": "audio", "spec": "jump, coin, stomp, power-up, checkpoint, level-complete" }
+  ],
+
+  "acceptance": {
+    "functional": [
+      "8 episodes load in order, simplest to hardest",
+      "hero runs / variable-jumps / double-jumps; coins collect; enemies stomp; shield protects",
+      "episode VIII boss (Rogue Architect) → Victory → scrolling Credits",
+      "npm run typecheck clean; npm run build produces dist/; zero runtime errors"
+    ],
+    "visual": [
+      "coins render ROUND in arcs (never slivers)",
+      "title does not overlap itself; parallax city with lit windows + sun glow visible",
+      "footer reads exactly: coded by GitPilot — under a Matrix Builder contract"
+    ],
+    "performance": ["steady 60fps on desktop; DPR-aware crisp scaling on mobile"],
+    "accessibility": ["honor prefers-reduced-motion", "on-screen touch controls on small screens"]
+  },
+
+  "batch_roadmap": [
+    { "id": "batch-01", "name": "Framework scaffold", "purpose": "Vite + Phaser + TS project, empty Boot scene.", "allowed_files": ["package.json", "vite.config.ts", "tsconfig.json", "index.html", "src/main.ts", "src/scenes/BootScene.ts"], "new_features": ["builds + renders an empty canvas"], "acceptance": ["npm run build works", "empty scene renders"] },
+    { "id": "batch-02", "name": "Asset pipeline", "purpose": "Programmatic original pixel-art set + Preload.", "depends_on": ["batch-01"], "allowed_files": ["scripts/gen_assets.py", "src/scenes/PreloadScene.ts", "public/assets/**"], "new_features": ["all assets from manifest load + animations build"], "must_not_change": ["src/main.ts"], "acceptance": ["all manifest assets present", "hero idle/run/jump anims exist"] },
+    { "id": "batch-03", "name": "Data-driven level engine", "purpose": "EpisodeCfg + seeded buildEpisode() + parallax GameScene.", "depends_on": ["batch-02"], "allowed_files": ["src/levels/episodes.ts", "src/levels/builder.ts", "src/scenes/GameScene.ts"], "new_features": ["one episode renders from a config object", "3 parallax layers"], "acceptance": ["episode I renders from data", "engine reads cfg, no per-episode engine code"] },
+    { "id": "batch-04", "name": "Player + coins", "purpose": "Hero control + round Contract Coins.", "depends_on": ["batch-03"], "allowed_files": ["src/entities/Player.ts", "src/entities/Coin.ts", "src/scenes/GameScene.ts"], "new_features": ["run/variable jump", "round coins in arcs"], "must_not_change": ["src/levels/builder.ts engine contract"], "acceptance": ["coins are ROUND (visual)", "hero collects coins, score updates"] },
+    { "id": "batch-05", "name": "Enemies + power-ups", "purpose": "BugBot, Slime, shield, double-jump.", "depends_on": ["batch-04"], "allowed_files": ["src/entities/BugBot.ts", "src/entities/Slime.ts", "src/entities/Player.ts", "src/scenes/GameScene.ts"], "new_features": ["stomp/damage/lives", "shield + double jump"], "acceptance": ["stomp from above kills; side hit costs a life", "power-ups change hero state"] },
+    { "id": "batch-06", "name": "HUD + contract panels + gate", "purpose": "Metallic HUD, RMD panels, Matrix Gate.", "depends_on": ["batch-05"], "allowed_files": ["src/ui/HUD.ts", "src/scenes/GameScene.ts"], "new_features": ["COINS/SCORE/LIVES/RMD LOCKED HUD", "contract panels", "animated gate ends the level"], "acceptance": ["HUD reads clearly", "reaching gate advances episode"] },
+    { "id": "batch-07", "name": "Campaign + story + boss", "purpose": "8 EpisodeCfg objects, Story cards, Rogue Architect boss.", "depends_on": ["batch-06"], "allowed_files": ["src/levels/episodes.ts", "src/scenes/StoryScene.ts", "src/scenes/GameScene.ts"], "new_features": ["8 episodes simplest→hardest", "per-episode narrative", "boss on VIII"], "must_not_change": ["src/levels/builder.ts (engine stays fixed)"], "acceptance": ["all 8 episodes playable in order", "boss defeat opens final gate"] },
+    { "id": "batch-08", "name": "Meta + polish + release", "purpose": "Title, Victory, Credits, responsive, CI.", "depends_on": ["batch-07"], "allowed_files": ["src/scenes/TitleScene.ts", "src/scenes/VictoryScene.ts", "src/scenes/CreditsScene.ts", ".github/workflows/deploy.yml"], "new_features": ["title splash + RMD tips", "victory + scrolling credits", "deploy to Pages"], "acceptance": ["title does not overlap (visual)", "credits scroll", "CI typecheck→build→deploy green"] }
+  ],
+
+  "governance": {
+    "design_packs": ["web-game-platformer-v1"],
+    "rules_applied": ["GAME-001", "GAME-002", "GAME-003", "GAME-004", "GAME-005", "GAME-006", "GAME-007", "GAME-008", "GAME-009", "GAME-010"],
+    "validation_status": "approved"
+  },
+
+  "provenance": {
+    "created_by": "matrix-designer",
+    "ai_assisted": true,
+    "model": "design-engine + optional LLM",
+    "design_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "created_at": "2026-06-17T00:00:00Z"
+  }
+}
