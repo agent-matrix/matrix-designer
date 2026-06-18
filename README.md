@@ -40,6 +40,27 @@ GitPilot writes the code.
 Matrix Definitions enforce the rules.
 ```
 
+## Live in Matrix Builder
+
+Matrix Designer is wired **end-to-end** into Matrix Builder's **Blueprint Details** page. Turn on the
+quiet **Matrix Designer** toggle in *Settings → System Configuration* and each blueprint's **Details**
+renders **real multi-agent output** — overview, architecture, build batches, file plan, Matrix rules,
+a **Design Brain** panel, and a live **Talk to blueprint** chat that refines the plan.
+
+![Blueprint cards → Details](docs/img/blueprint-cards.png)
+![Blueprint Details — real agent output, Design Brain, live chat](docs/img/details-page.png)
+
+Built and tested across both repos — batches `00`–`11` of the
+[integration roadmap](docs/INTEGRATION_ROADMAP.md) (`09` dropped: provider-agnostic):
+
+```
+idea ─▶ Matrix Designer (LangGraph brain) ─▶ HTTP/MCP service ─▶ control-plane proxy
+     ─▶ typed web client ─▶ Blueprint Details page    (deterministic fallback at every hop)
+```
+
+Every hop **fails open** to a deterministic derivation, so the page never blocks and the toggle-off
+behaviour is unchanged. Saved blueprints + chat persist per build, owner-scoped (RLS).
+
 ## Where it fits in the pipeline
 
 Matrix Builder's contract chain today is `idea-request → blueprint-candidate(×3) → matrix-bundle →

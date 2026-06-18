@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — Integration shipped (batch-12)
+- Matrix Designer is wired end-to-end into Matrix Builder's Blueprint Details page: real
+  multi-agent output (overview, architecture, batches, file plan, Matrix rules), a Design Brain
+  panel, and a live Talk-to-blueprint chat — with a deterministic fallback at every hop.
+- docs/INTEGRATION_ROADMAP.md marked 00-11 done (09 dropped: provider-agnostic); README gains a
+  "Live in Matrix Builder" section with before/after screenshots (docs/img/).
+
 ## 0.5.0 — provider-agnostic + E2E proof (batch-11)
 - Provider-agnostic: Matrix Designer works with OllaBridge or ANY LLM provider. The watsonx-only
   guard is relaxed to an optional operator allow-list (MATRIX_DESIGNER_ALLOWED_PROVIDERS); unset

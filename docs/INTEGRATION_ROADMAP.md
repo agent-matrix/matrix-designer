@@ -37,21 +37,33 @@ flowchart TB
 
 ## Batches & acceptance
 
-| # | Batch | Touches | Acceptance |
+Status as of the integration build: **00–11 landed** (09 intentionally dropped — Matrix Designer is
+provider-agnostic, see below); **12** is this doc + release.
+
+| # | Batch | Touches | Status |
 |---|---|---|---|
-| **00** | **Schemas & shared contract** | `packages/contracts/schemas/*`, `schema-registry.json` | schemas validate the example bundle; registry lists both |
-| **01** | **Designer service (HTTP/MCP)** | `matrix_designer/service.py`, `mcp_server.py` | returns 3 blueprints; watsonx-only; deterministic fallback |
-| **02** | **Control-plane proxy endpoints** | `services/api/app/api/blueprints.py` | 4 endpoints return schema-valid payloads; never 500 on designer-down |
-| **03** | **Typed web client** | `apps/web/src/lib/blueprint-client.ts` | typechecks; offline/off → local derivation |
-| **04** | **Wire candidates to the brain** | `MatrixBuilderClient.tsx` | toggle ON → agent cards; OFF → unchanged |
-| **05** | **Details from real BlueprintDetails** | `MatrixBuilderClient.tsx` | Details renders agent data; derivation is the fallback |
-| **06** | **Live Talk-to-blueprint** | `MatrixBuilderClient.tsx` | "add a boss level" adds a batch; Save persists |
-| **07** | **Design Brain panel** | `MatrixBuilderClient.tsx` | shows only when toggle on; content from the bundle |
-| **08** | **Matrix Definitions design rules** | `packs/**`, `docs/GOVERNANCE.md` | unscoped batch rejected; game without visual acceptance → needs-repair |
-| **09** | **watsonx-only governance** | `agents.py`, `service.py` | non-watsonx provider refused; no keys committed |
-| **10** | **Persist design bundles** | `workflow_service.py`, migration `0005` | reopen build → same blueprint + chat; owner-scoped (RLS) |
-| **11** | **E2E proof: Contract Quest** | `tests/e2e/*`, `examples/contract-quest/*` | design → mb-next → validated batches; game builds |
-| **12** | **Docs, screenshots & release** | `README.md`, `docs/*`, `CHANGELOG.md` | docs build; before/after screenshots; release notes |
+| **00** | **Schemas & shared contract** | `packages/contracts/schemas/*`, `schema-registry.json` | ✅ done |
+| **01** | **Designer service (HTTP/MCP)** | `matrix_designer/service.py`, `mcp_server.py` | ✅ done |
+| **02** | **Control-plane proxy endpoints** | `services/api/app/api/blueprints.py` | ✅ done |
+| **03** | **Typed web client** | `apps/web/src/lib/blueprint-client.ts` | ✅ done |
+| **04** | **Wire candidates to the brain** | `MatrixBuilderClient.tsx` | ✅ done |
+| **05** | **Details from real BlueprintDetails** | `MatrixBuilderClient.tsx` | ✅ done |
+| **06** | **Live Talk-to-blueprint** | `MatrixBuilderClient.tsx` | ✅ done |
+| **07** | **Design Brain panel** | `MatrixBuilderClient.tsx` | ✅ done |
+| **08** | **Matrix Definitions design rules** | `packs/**`, `docs/GOVERNANCE.md` | ✅ done |
+| **09** | **watsonx-only governance** | — | ⏭️ dropped (provider-agnostic) |
+| **10** | **Persist design bundles** | `workflow` + migration `0006` | ✅ done (RLS) |
+| **11** | **E2E proof: Contract Quest** | `tests/e2e/*` | ✅ done |
+| **12** | **Docs, screenshots & release** | this doc, `README.md`, `CHANGELOG.md` | ✅ done |
+
+> **batch-09 dropped:** the ecosystem uses **OllaBridge / any LLM provider**, so Matrix Designer is
+> provider-agnostic. The old watsonx-only guard is now an *optional* operator allow-list
+> (`MATRIX_DESIGNER_ALLOWED_PROVIDERS`); unset = allow all.
+
+> **batch-10 note:** the `design_bundles` table, endpoints (`/save`, `/saved`) and RLS are done and
+> tested; the typed client is wired (`saveBlueprintDetails(buildId)`, `fetchSavedBlueprint`). The UI
+> *auto-reload from server* rides on the broader localStorage→control-plane migration (matrix-builder
+> TODO **P0**) and just needs a server-side build id to key on.
 
 ## Execution
 
