@@ -1,0 +1,184 @@
+{
+  "schema_version": "matrix.designer.bundle/v1",
+  "design_id": "dsn-matrix-designer-integration",
+  "project": "matrix-designer-integration",
+  "slug": "matrix-designer-integration",
+  "domain": "agent",
+  "build_type": "app",
+  "quality_level": "production",
+
+  "source": {
+    "idea": "Wire Matrix Designer (the LangGraph multi-agent brain) into Matrix Builder end-to-end: the Blueprint Details page renders REAL agent output (top-3 blueprints + overview, architecture, batches, file plan, Matrix rules) and the Talk-to-blueprint chat calls the orchestrator to refine the design, governed by Matrix Definitions and watsonx-only, native to GitPilot.",
+    "idea_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "references": [
+      { "kind": "repo", "ref": "agent-matrix/matrix-builder", "note": "control plane + apps/web Details page" },
+      { "kind": "repo", "ref": "agent-matrix/matrix-designer", "note": "the LangGraph brain + MCP server" }
+    ]
+  },
+
+  "goal_analysis": {
+    "real_goal": "Replace the Details page's client-side derivation with the real multi-agent designer, opt-in behind the Matrix Designer toggle, fail-closed and watsonx-only, with zero regression when the toggle is off.",
+    "audience": "Enterprises adopting governed, AI-designed software at scale.",
+    "complexity": "large",
+    "missing_decisions": [
+      "transport: MCP stdio vs HTTP proxy in services/api",
+      "where design bundles persist (build version vs separate table)",
+      "guest/offline behaviour when the brain is unavailable"
+    ],
+    "risks": [
+      { "risk": "Designer output diverges from the Details page data model.", "severity": "high", "mitigation": "Share one schema: blueprint-details mirrors the TS interfaces; contract test both sides." },
+      { "risk": "A slow/failing LLM blocks the UI.", "severity": "high", "mitigation": "Deterministic runner fallback + timeout; toggle-off keeps today's behaviour." },
+      { "risk": "Unapproved model usage.", "severity": "critical", "mitigation": "watsonx-only enforced by env + a CTL/DESIGN rule in matrix-definitions." }
+    ]
+  },
+
+  "framework_decision": {
+    "stack": ["Python", "LangGraph", "FastAPI", "Next.js", "TypeScript"],
+    "rationale": "Reuse the existing stacks: LangGraph for the brain, FastAPI for the matrix-builder control plane, Next.js/TS for apps/web. No new runtime.",
+    "rejected": [
+      { "option": "Re-implement the brain inside apps/web", "why_not": "Couples design logic to the UI; loses the reusable MCP server and CLI." },
+      { "option": "Call the LLM directly from the browser", "why_not": "Breaks watsonx-only governance and leaks keys." }
+    ],
+    "deployment_target": "docker"
+  },
+
+  "visual_target": {
+    "style": "Unchanged — the premium dark Details page already shipped; this fills it with real data.",
+    "must_include": ["3 blueprint cards with Details", "Design Brain section when the toggle is on", "live Talk-to-blueprint chat"],
+    "must_avoid": ["any regression when Matrix Designer is off", "blocking the UI on the LLM"]
+  },
+
+  "architecture": {
+    "scenes": [],
+    "routes": ["/api/v1/blueprints/candidates", "/api/v1/blueprints/{id}/details", "/api/v1/blueprints/{id}/chat", "/api/v1/blueprints/{id}/save"],
+    "systems": [
+      "matrix-designer brain (LangGraph StateGraph)",
+      "matrix-designer service (FastAPI/MCP exposing generate_blueprints + refine_design)",
+      "matrix-builder control plane (proxy endpoints)",
+      "apps/web Details page (workflow-client + MatrixBuilderClient)",
+      "matrix-definitions (DESIGN-* / GAME-* rules + design-pack)"
+    ],
+    "diagram": "apps/web -> services/api -> matrix-designer (MCP/HTTP) -> LangGraph brain -> BlueprintDetails -> apps/web"
+  },
+
+  "contracts": {
+    "data_model": [
+      "BlueprintCandidate { id, tier, title, summary, file_count, difficulty, estimate, stack, recommended }",
+      "BlueprintDetails { candidate_id, overview, architecture[], batches[], file_plan[], matrix_rules[], acceptance, validation, risks, assumptions, design_brain, chat_history[] }",
+      "ChatMessage { id, role, content, timestamp }"
+    ],
+    "api_plan": [
+      "POST /api/v1/blueprints/candidates {idea, constraints?} -> BlueprintCandidate[]",
+      "GET  /api/v1/blueprints/{id}/details -> BlueprintDetails",
+      "POST /api/v1/blueprints/{id}/chat {message} -> {reply, details}",
+      "POST /api/v1/blueprints/{id}/save {edits} -> BlueprintDetails"
+    ]
+  },
+
+  "acceptance": {
+    "functional": [
+      "with the Matrix Designer toggle ON, the Details page renders real agent output for all 3 blueprints",
+      "Talk-to-blueprint chat calls refine_design and shows the updated batches",
+      "with the toggle OFF, behaviour is byte-for-byte today's deterministic derivation (no regression)",
+      "all LLM usage is watsonx-only; offline falls back to the deterministic runner",
+      "matrix-builder typecheck + build clean; matrix-designer tests green"
+    ],
+    "visual": ["Design Brain section appears only when the toggle is on"],
+    "performance": ["candidates return < 4s or fall back to deterministic with a notice"],
+    "accessibility": ["chat composer keeps aria-labels; no blocking spinners without a timeout"]
+  },
+
+  "batch_roadmap": [
+    { "id": "batch-00", "name": "Design brain & shared contract", "purpose": "Land design-bundle + blueprint-details schemas in matrix-builder contracts and register them; one schema both sides validate.",
+      "allowed_files": ["packages/contracts/schemas/design-bundle.schema.json", "packages/contracts/schemas/blueprint-details.schema.json", "packages/contracts/schema-registry.json"],
+      "new_features": ["design-bundle + blueprint-details schemas registered, owned_by += matrix-designer"],
+      "acceptance": ["schemas validate the matrix-designer example bundle", "schema-registry lists both"] },
+
+    { "id": "batch-01", "name": "Designer service (HTTP/MCP)", "purpose": "Expose generate_blueprints + refine_design over an HTTP endpoint (FastAPI) in matrix-designer, alongside the existing stdio MCP server.",
+      "depends_on": ["batch-00"],
+      "allowed_files": ["src/matrix_designer/service.py", "src/matrix_designer/mcp_server.py", "pyproject.toml", "tests/test_service.py"],
+      "new_features": ["POST /design/blueprints", "POST /design/refine", "healthz"],
+      "acceptance": ["service returns 3 blueprints for a sample idea", "watsonx-only honoured; deterministic fallback when no key"] },
+
+    { "id": "batch-02", "name": "Control-plane proxy endpoints", "purpose": "Add the 4 blueprint endpoints to matrix-builder services/api, proxying the designer service (or importing matrix_designer).",
+      "depends_on": ["batch-01"],
+      "allowed_files": ["services/api/app/api/blueprints.py", "services/api/app/services/designer_client.py", "services/api/app/main.py"],
+      "new_features": ["/api/v1/blueprints/candidates|{id}/details|{id}/chat|{id}/save"],
+      "acceptance": ["endpoints return schema-valid payloads", "designer unavailable -> deterministic fallback, never 500"],
+      "must_not_change": ["services/api/app/api/workflow.py"] },
+
+    { "id": "batch-03", "name": "Typed web client", "purpose": "Add blueprint methods to apps/web workflow-client with auth headers + a deterministic offline fallback.",
+      "depends_on": ["batch-02"],
+      "allowed_files": ["apps/web/src/lib/workflow-client.ts", "apps/web/src/lib/blueprint-client.ts", "apps/web/src/types/blueprint.ts"],
+      "new_features": ["getCandidates, getDetails, sendChat, saveDetails"],
+      "acceptance": ["client typechecks", "falls back to local derivation when offline or toggle off"] },
+
+    { "id": "batch-04", "name": "Wire candidates to the brain", "purpose": "When the Matrix Designer toggle is ON, source the 3 cards from the designer; OFF keeps today's deterministic candidates.",
+      "depends_on": ["batch-03"],
+      "allowed_files": ["apps/web/src/app/matrix-builder/MatrixBuilderClient.tsx"],
+      "new_features": ["toggle-gated real candidates", "loading/empty/error states"],
+      "acceptance": ["toggle ON -> agent candidates; OFF -> unchanged", "no regression in the choose flow"] },
+
+    { "id": "batch-05", "name": "Details page from real BlueprintDetails", "purpose": "Replace the client-side deriveBatches/deriveArchitecture/deriveFilePlan with fetched BlueprintDetails when available.",
+      "depends_on": ["batch-04"],
+      "allowed_files": ["apps/web/src/app/matrix-builder/MatrixBuilderClient.tsx"],
+      "new_features": ["overview/architecture/batches/file plan/rules from the brain", "‘Preparing details…’ skeleton"],
+      "acceptance": ["Details renders real agent data", "deterministic derivation remains the offline fallback"] },
+
+    { "id": "batch-06", "name": "Live Talk-to-blueprint", "purpose": "Wire the chat composer + Save to refine_design / save endpoints; unsaved-edits badge.",
+      "depends_on": ["batch-05"],
+      "allowed_files": ["apps/web/src/app/matrix-builder/MatrixBuilderClient.tsx"],
+      "new_features": ["chat calls refine_design", "Save persists edits", "‘Blueprint updated.’ toast"],
+      "acceptance": ["‘add a boss level’ adds a batch in the UI", "Save persists; contract only changes on save"] },
+
+    { "id": "batch-07", "name": "Design Brain panel", "purpose": "Populate the Design Brain section from the designer’s reasoning (intent, dependency graph, visual acceptance).",
+      "depends_on": ["batch-05"],
+      "allowed_files": ["apps/web/src/app/matrix-builder/MatrixBuilderClient.tsx"],
+      "new_features": ["Design Brain shows product intent + batch dependency graph"],
+      "acceptance": ["panel shows only when the toggle is on", "content comes from the bundle, not hard-coded"] },
+
+    { "id": "batch-08", "name": "Matrix Definitions design rules", "purpose": "Add DESIGN-*/GAME-* rules + a web-game design-pack so design bundles are validated by the signed authority.",
+      "depends_on": ["batch-00"],
+      "allowed_files": ["packs/**", "docs/GOVERNANCE.md"],
+      "new_features": ["DESIGN-001..004 + GAME-001..010 promoted to a signed pack"],
+      "acceptance": ["validator rejects an unscoped batch", "game bundle without visual acceptance is needs-repair"] },
+
+    { "id": "batch-09", "name": "watsonx-only governance", "purpose": "Enforce approved-provider-only across the designer + builder; add a control rule and env gate.",
+      "depends_on": ["batch-01"],
+      "allowed_files": ["src/matrix_designer/agents.py", "src/matrix_designer/service.py", "docs/GOVERNANCE.md"],
+      "new_features": ["provider allow-list (watsonx)", "no third-party endpoints"],
+      "acceptance": ["non-watsonx provider is refused", "no keys committed"] },
+
+    { "id": "batch-10", "name": "Persist design bundles", "purpose": "Store the chosen design bundle + chat history with the build so it survives reload and syncs across devices.",
+      "depends_on": ["batch-02", "batch-06"],
+      "allowed_files": ["services/api/app/services/workflow_service.py", "services/api/migrations/0005_design_bundles.py"],
+      "new_features": ["design_bundles table linked to a version", "chat history persisted"],
+      "acceptance": ["reopen a build -> same blueprint + chat", "RLS keeps it owner-scoped"] },
+
+    { "id": "batch-11", "name": "End-to-end proof: Contract Quest", "purpose": "Run idea -> designer -> builder -> GitPilot for the Contract Quest game and confirm a playable result.",
+      "depends_on": ["batch-05", "batch-06", "batch-08", "batch-09"],
+      "allowed_files": ["examples/contract-quest/**", "tests/e2e/test_design_to_build.py"],
+      "new_features": ["scripted E2E: design bundle -> mb next sequence -> validated batches"],
+      "acceptance": ["E2E produces an mb-next sequence that matches the roadmap", "Contract Quest builds from the generated plan"] },
+
+    { "id": "batch-12", "name": "Docs, screenshots & release", "purpose": "Document the integration, capture before/after screenshots, version bump, changelog.",
+      "depends_on": ["batch-11"],
+      "allowed_files": ["README.md", "docs/INTEGRATION.md", "docs/INTEGRATION_ROADMAP.md", "CHANGELOG.md", "VERSION"],
+      "new_features": ["integration guide + screenshots", "release notes"],
+      "acceptance": ["docs build", "changelog updated", "screenshots show real agent data in the Details page"] }
+  ],
+
+  "governance": {
+    "design_packs": ["web-saas-product-v1"],
+    "rules_applied": ["DESIGN-001", "DESIGN-002", "DESIGN-003", "DESIGN-004"],
+    "validation_status": "approved"
+  },
+
+  "provenance": {
+    "created_by": "matrix-designer",
+    "ai_assisted": true,
+    "model": "langgraph multi-agent + author review",
+    "design_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "created_at": "2026-06-18T00:00:00Z"
+  }
+}
