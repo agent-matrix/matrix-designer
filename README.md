@@ -54,21 +54,39 @@ Nothing downstream changes. `idea-request` gains optional `references[]` + `desi
 `blueprint-candidate` gains optional `design_bundle_ref` + `design_digest` so each blueprint is
 **provably derived** from a signed design. See [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
-## The agentic crew (the batches guy)
+## The multi-agent brain (LangGraph) — designs the top-3 blueprints
 
-Given the chosen blueprint, a small **CrewAI** crew collaborates — and the **Batch Planner** owns the
-roadmap:
+A **LangGraph `StateGraph`** of specialist agents designs **three blueprints at once**
+(Minimal → Standard → Production, simplest → hardest) and populates the full Blueprint
+Details dashboard — with an **orchestrator chat** for live modifications. Each agent owns
+one slice of the shared design state:
+
+```
+Planner → Requirements → Architect → UI/UX → Batch Planner → Quality → Synthesizer → 3 Blueprints
+                                                   ↑__________ chat: "add a boss level" __________|
+```
 
 | Agent | Produces |
 |---|---|
-| **Goal Analyst** | the real goal, complexity, risks, missing decisions |
-| **Solution Architect** | scenes/routes, systems, services, entity/data contracts |
-| **Visual & UX Director** | the visual target + asset/UI manifest (so *done* has a LOOK) |
-| **Batch Planner** 🧩 | the ordered, dependency-aware **batch roadmap** — `allowed_files`, `acceptance`, `must_not_change` per batch |
+| **Planner / orchestrator** | domain, goals, coordination |
+| **Requirements Analyst** | features, constraints, users, non-functional |
+| **Architect** | components + dependencies for the stack |
+| **UI/UX Designer** | flows + the asset/UI manifest (so *done* has a LOOK) |
+| **Batch Planner** 🧩 | ordered, dependency-aware roadmap **per tier** — `allowed_files`, `acceptance` |
+| **Quality Checker** | RMD + `DESIGN-*` governance (the brain can't approve itself) |
+| **Blueprint Synthesizer** | the 3 candidate cards + full **BlueprintDetails** |
 
-LangGraph / Langflow back-ends are pluggable behind the same `DesignEngine` API
-(`MATRIX_DESIGNER_BACKEND=crewai|langgraph|langflow|off`). A **deterministic planner** always runs
-when no LLM is configured, so CI and offline use never break.
+Full topology, state model and diagram: **[`docs/AGENTS.md`](docs/AGENTS.md)**.
+
+```bash
+mdesign blueprints --idea "Build a Phaser/Vite platformer on GitHub Pages"   # 3 blueprints + details
+mdesign chat --idea "..." --message "add a boss level" --candidate standard  # orchestrator refinement
+```
+
+LangGraph is used when installed (`pip install "matrix-designer[langgraph]"`, durable state +
+checkpointing); a **deterministic runner** executes the identical agents when no LLM is configured,
+so CI and offline use never break. (A CrewAI back-end is also available behind the same
+`DesignEngine` API via `MATRIX_DESIGNER_BACKEND=crewai`.)
 
 > **AI proposes; Matrix Definitions enforce.** The Design Bundle is validated against design-packs
 > (`GAME-001…010`, `APP-001…`) — the brain never approves itself.

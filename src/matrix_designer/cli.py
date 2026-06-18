@@ -15,6 +15,7 @@ from typing import Any, Dict
 
 from .engine import DesignEngine
 from .exporter import to_mb_export
+from .graph import design_blueprints, refine, run_design
 from .validate import verdict
 
 
@@ -44,11 +45,30 @@ def main(argv=None) -> int:
         sp.add_argument("--quality", default="standard")
         sp.add_argument("-o", "--out")
 
+    bp = sub.add_parser("blueprints")  # the LangGraph multi-agent brain → 3 blueprints
+    bp.add_argument("--idea", required=True); bp.add_argument("-o", "--out")
+    cp = sub.add_parser("chat")        # orchestrator chat → refine a blueprint
+    cp.add_argument("--idea", required=True); cp.add_argument("--message", required=True)
+    cp.add_argument("--candidate", default="standard")
+
     vp = sub.add_parser("validate"); vp.add_argument("bundle")
     ep = sub.add_parser("export"); ep.add_argument("bundle"); ep.add_argument("-o", "--out")
     sub.add_parser("mcp")
 
     args = p.parse_args(argv)
+
+    if args.cmd == "blueprints":
+        out = design_blueprints(args.idea); out.pop("_state", None)
+        _emit(out, args.out)
+        print(f"designed {len(out['candidates'])} blueprints; {len(out['violations'])} violations", file=sys.stderr)
+        return 0
+
+    if args.cmd == "chat":
+        state = run_design(args.idea)
+        out = refine(state, args.message, args.candidate); out.pop("_state", None)
+        print(json.dumps({"reply": out["reply"], "chat_history": out["chat_history"],
+                          "batches": out["details"][args.candidate]["batches"]}, indent=2, ensure_ascii=False))
+        return 0
 
     if args.cmd in ("design", "batches"):
         blueprint = _load(args.blueprint) if args.blueprint else {"slug": "project", "stack": []}

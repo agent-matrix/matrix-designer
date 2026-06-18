@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from .engine import DesignEngine
 from .exporter import to_mb_export
+from .graph import design_blueprints, refine, run_design
 from .validate import verdict
 
 try:
@@ -82,6 +83,26 @@ def export_to_builder(design_bundle: Dict[str, Any]) -> Dict[str, Any]:
     return to_mb_export(design_bundle)
 
 
+def generate_blueprints(idea: str, references: Optional[List[Dict[str, str]]] = None,
+                        constraints: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Run the LangGraph multi-agent brain → 3 blueprints (Minimal/Standard/Production)
+    with full Blueprint Details (overview, architecture, batches, file plan, Matrix rules)
+    that the Matrix Builder Details page renders directly."""
+    out = design_blueprints(idea, references, constraints)
+    out.pop("_state", None)
+    return out
+
+
+def refine_design(idea: str, message: str, candidate_id: str = "standard",
+                  constraints: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Orchestrator chat: apply a free-text modification (e.g. 'add a boss level',
+    'reduce scope', 'add audit logging') to a blueprint and return the updated details."""
+    state = run_design(idea, None, constraints)
+    out = refine(state, message, candidate_id)
+    out.pop("_state", None)
+    return out
+
+
 def build_server():  # pragma: no cover
     if not _HAVE_MCP:
         raise RuntimeError("Install the MCP extra:  pip install 'matrix-designer[mcp]'")
@@ -90,6 +111,8 @@ def build_server():  # pragma: no cover
     mcp.tool()(decompose_reference)
     mcp.tool()(propose_architecture)
     mcp.tool()(generate_batches)
+    mcp.tool()(generate_blueprints)
+    mcp.tool()(refine_design)
     mcp.tool()(assemble_design_bundle)
     mcp.tool()(validate_design)
     mcp.tool()(export_to_builder)
