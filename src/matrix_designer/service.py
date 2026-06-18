@@ -20,14 +20,19 @@ from typing import Any, Dict, List, Optional
 from .graph import design_blueprints, refine, run_design
 
 DEFAULT_PORT = int(os.environ.get("MATRIX_DESIGNER_PORT", "8077"))
-APPROVED_PROVIDERS = {"watsonx", "", "none"}
 
 
 def provider_guard() -> Optional[str]:
-    """Return an error string if a non-approved LLM provider is configured, else None."""
+    """Provider-agnostic: Matrix Designer works with OllaBridge or any LLM provider, so no
+    provider is restricted. Kept as a hook for an operator-defined allow-list via
+    MATRIX_DESIGNER_ALLOWED_PROVIDERS (comma-separated); unset = allow all."""
+    allow = os.environ.get("MATRIX_DESIGNER_ALLOWED_PROVIDERS", "").strip()
+    if not allow:
+        return None  # allow any provider (default)
     provider = os.environ.get("MATRIX_DESIGNER_PROVIDER", os.environ.get("GITPILOT_PROVIDER", "")).lower()
-    if provider not in APPROVED_PROVIDERS:
-        return f"provider '{provider}' is not approved (watsonx-only). Set MATRIX_DESIGNER_PROVIDER=watsonx."
+    allowed = {p.strip().lower() for p in allow.split(",")} | {"", "none"}
+    if provider not in allowed:
+        return f"provider '{provider}' is not in MATRIX_DESIGNER_ALLOWED_PROVIDERS ({allow})."
     return None
 
 

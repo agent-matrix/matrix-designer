@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — provider-agnostic + E2E proof (batch-11)
+- Provider-agnostic: Matrix Designer works with OllaBridge or ANY LLM provider. The watsonx-only
+  guard is relaxed to an optional operator allow-list (MATRIX_DESIGNER_ALLOWED_PROVIDERS); unset
+  allows all. (Skips the watsonx-only governance.)
+- batch-11 E2E proof (tests/e2e/test_design_to_build.py): Contract Quest idea → multi-agent design
+  → approved bundle → ordered, scoped, acyclic mb-next sequence targeting a real Phaser/Vite project.
+
 ## 0.4.0 — Design rules as signed packs (batch-08)
 - Formalize the rule catalog in `packs/*/rules.yaml`: DESIGN-* (cross-domain), GAME-* (web-game),
   APP-* (saas). New `rules.py` loader is one source of truth; `validate.py` adds DESIGN-005

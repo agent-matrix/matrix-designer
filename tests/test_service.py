@@ -18,14 +18,16 @@ def test_refine_handler_adds_a_batch():
     assert out["reply"]
 
 
-def test_watsonx_only_guard(monkeypatch):
-    assert provider_guard() is None                      # default: deterministic, allowed
+def test_provider_agnostic_by_default(monkeypatch):
+    # Default: ANY provider is allowed (OllaBridge or otherwise) — no restriction.
     monkeypatch.setenv("MATRIX_DESIGNER_PROVIDER", "openai")
-    assert provider_guard() is not None                  # non-watsonx refused
-    out = blueprints_handler("anything")
-    assert out["error"] and not out["candidates"]
-    monkeypatch.setenv("MATRIX_DESIGNER_PROVIDER", "watsonx")
-    assert provider_guard() is None                      # watsonx approved
+    assert provider_guard() is None
+    assert len(blueprints_handler("anything")["candidates"]) == 3
+    # An operator MAY opt into an allow-list.
+    monkeypatch.setenv("MATRIX_DESIGNER_ALLOWED_PROVIDERS", "ollabridge,watsonx")
+    assert provider_guard() is not None                  # openai not in the list
+    monkeypatch.setenv("MATRIX_DESIGNER_PROVIDER", "ollabridge")
+    assert provider_guard() is None                      # now allowed
 
 
 def test_health():
