@@ -1,0 +1,136 @@
+{
+  "schema_version": "matrix.designer.bundle/v1",
+  "design_id": "dsn-client-first-workspace",
+  "project": "blueprint-workspace-client-first",
+  "slug": "blueprint-workspace-client-first",
+  "domain": "web-app",
+  "build_type": "app",
+  "quality_level": "production",
+
+  "source": {
+    "idea": "Re-architect the Blueprint Details page as a client-first, API-optional live design workspace: one client state object + a browser-bundled engine drive every section; the LLM and the server are progressive enhancements, never required. Works fully offline / on GitHub Pages.",
+    "idea_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "references": [
+      { "kind": "repo", "ref": "agent-matrix/matrix-builder", "note": "apps/web Details page + control plane (now optional)" }
+    ]
+  },
+
+  "goal_analysis": {
+    "real_goal": "Remove the hard API dependency so the workspace is instant and offline by default, and only gets richer (shared, AI-refined) when a backend/model is available.",
+    "audience": "Anyone running Matrix Builder — including on static hosting with no backend.",
+    "complexity": "medium",
+    "missing_decisions": [
+      "client state library (Zustand vs React context)",
+      "where the browser engine lives (in-repo package vs inline module)"
+    ],
+    "risks": [
+      { "risk": "3-hop API chain refuses connections / unavailable on static hosting.", "severity": "high", "mitigation": "Make the client engine the primary path; server + LLM are optional." },
+      { "risk": "Live feel waits on network round-trips.", "severity": "medium", "mitigation": "Apply chat mutations locally first, refine optionally afterward." },
+      { "risk": "Two engines (Python brain + TS engine) drift.", "severity": "medium", "mitigation": "Share the design-bundle schema + a conformance test across both." }
+    ]
+  },
+
+  "framework_decision": {
+    "stack": ["TypeScript", "React", "Zustand"],
+    "rationale": "Keep the existing Next.js/TS app; add a tiny client store + a pure-function engine bundled into the page. No new runtime, no required backend.",
+    "rejected": [
+      { "option": "Keep the API-first 3-hop chain as the only path", "why_not": "Fragile, can't run on GitHub Pages, adds latency to a live workspace." },
+      { "option": "Server-side rendering of the workspace", "why_not": "Re-introduces the backend dependency this plan removes." }
+    ],
+    "deployment_target": "static-pages"
+  },
+
+  "visual_target": {
+    "style": "Unchanged — the premium dark live-workspace Details page already shipped.",
+    "must_include": ["instant section updates from chat", "works with network blocked"],
+    "must_avoid": ["any hard fetch on the render path", "blocking spinners waiting on an API"]
+  },
+
+  "architecture": {
+    "systems": [
+      "blueprintStore — single client state object (BlueprintDetailsState)",
+      "blueprint-engine — browser-bundled deterministic engine (generate + apply)",
+      "ai-refine — optional 1-call LLM enhancement (provider-agnostic, fail-open)",
+      "local-persistence — localStorage-first autosave per build",
+      "server-bridge — OPTIONAL control-plane sync behind a capability check"
+    ],
+    "diagram": "chat → store+engine (local, instant) → sections; optional → AI refine / server sync"
+  },
+
+  "contracts": {
+    "data_model": [
+      "BlueprintDetailsState { blueprint, overview, architecture, filePlan, batches[], designBrain, matrixRules[], chat, dirty }",
+      "apply(state, instruction) -> { state, reply, updatedSections[] }"
+    ]
+  },
+
+  "acceptance": {
+    "functional": [
+      "with the network fully blocked, the page generates, chat-edits, persists and reloads",
+      "chat mutations patch the affected sections instantly from the client engine",
+      "when a model is configured, an optional single AI call refines the local result; failure leaves the local result intact",
+      "when a backend is configured, state syncs; without it the UX is identical",
+      "web typecheck + build clean; engine unit tests green"
+    ],
+    "performance": ["chat → visible section update with no network round-trip"],
+    "accessibility": ["no blocking spinners; composer stays usable offline"]
+  },
+
+  "batch_roadmap": [
+    { "id": "batch-00", "name": "Client state model", "purpose": "BlueprintDetailsState + blueprintStore as the single source of truth.",
+      "allowed_files": ["apps/web/src/lib/blueprint-store.ts", "apps/web/src/types/blueprint-state.ts"],
+      "new_features": ["one live state object", "sections render from the store"],
+      "acceptance": ["sections render from the store with no fetch"] },
+
+    { "id": "batch-01", "name": "Browser blueprint-engine", "purpose": "Deterministic in-browser engine: generate(idea) + apply(state, instruction).",
+      "depends_on": ["batch-00"],
+      "allowed_files": ["apps/web/src/lib/blueprint-engine.ts", "apps/web/src/lib/__tests__/blueprint-engine.test.ts"],
+      "new_features": ["generate 3 tiers", "apply: insert/rename/reorder/split batches; update architecture, file plan, design brain"],
+      "acceptance": ["pure functions, no network", "unit tests cover add/reduce/split"] },
+
+    { "id": "batch-02", "name": "Wire Details to store + engine", "purpose": "Chat calls apply() locally; sections patch instantly; remove the hard fetch from the render path.",
+      "depends_on": ["batch-01"],
+      "allowed_files": ["apps/web/src/app/matrix-builder/MatrixBuilderClient.tsx"],
+      "new_features": ["instant local updates", "no request needed to edit the plan"],
+      "must_not_change": ["the visual design"],
+      "acceptance": ["airplane mode: 'add a boss level' adds a batch with no request"] },
+
+    { "id": "batch-03", "name": "Optional AI enhancement", "purpose": "refineWithAI(state, instruction): one provider-agnostic call; on timeout/error return the local result.",
+      "depends_on": ["batch-02"],
+      "allowed_files": ["apps/web/src/lib/ai-refine.ts", "apps/web/src/lib/ollabridge-client.ts"],
+      "new_features": ["single optional LLM call", "timeout-bounded, fail-open"],
+      "acceptance": ["provider down → local result stands; UI never blocks"] },
+
+    { "id": "batch-04", "name": "localStorage-first persistence", "purpose": "Autosave BlueprintDetailsState per build to localStorage; Unsaved/save reflect local state.",
+      "depends_on": ["batch-02"],
+      "allowed_files": ["apps/web/src/lib/blueprint-store.ts", "apps/web/src/lib/blueprint-persistence.ts"],
+      "new_features": ["per-build autosave", "reload restores the workspace"],
+      "acceptance": ["reload restores the workspace with no server"] },
+
+    { "id": "batch-05", "name": "Optional server bridge", "purpose": "Make /api/v1/blueprints/* an optional sync/enhancement target behind capabilities().",
+      "depends_on": ["batch-02", "batch-04"],
+      "allowed_files": ["apps/web/src/lib/blueprint-client.ts", "apps/web/src/lib/capabilities.ts"],
+      "new_features": ["capability check", "sync when a backend exists"],
+      "acceptance": ["with a server: syncs; without: identical UX"] },
+
+    { "id": "batch-06", "name": "Proof: fully offline workspace", "purpose": "E2E with the network blocked: generate, chat-edit, persist, reload — all green.",
+      "depends_on": ["batch-03", "batch-04", "batch-05"],
+      "allowed_files": ["apps/web/e2e/offline-workspace.spec.ts"],
+      "new_features": ["network-blocked e2e"],
+      "acceptance": ["no request leaves the page; all interactions work offline"] }
+  ],
+
+  "governance": {
+    "design_packs": ["design-rules-v1", "web-saas-product-v1"],
+    "rules_applied": ["DESIGN-001", "DESIGN-002", "DESIGN-003", "DESIGN-004", "DESIGN-005"],
+    "validation_status": "approved"
+  },
+
+  "provenance": {
+    "created_by": "matrix-designer",
+    "ai_assisted": true,
+    "model": "analysis + author review",
+    "design_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "created_at": "2026-06-18T00:00:00Z"
+  }
+}
