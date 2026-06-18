@@ -1,0 +1,24 @@
+id: web-saas-product-v1
+title: Web SaaS — design rules (APP-*)
+description: Domain rules for SaaS / web-app design bundles.
+rules:
+  - id: APP-001
+    title: Data model before screens
+    severity: medium
+    check: "contracts.data_model is defined for the build"
+  - id: APP-002
+    title: Auth flow declared
+    severity: medium
+    check: "auth is in the architecture/systems when data is sensitive"
+  - id: APP-003
+    title: API plan declared
+    severity: low
+    check: "contracts.api_plan lists the core routes"
+  - id: APP-004
+    title: Accessibility acceptance
+    severity: low
+    check: "acceptance.accessibility is non-empty"
+  - id: APP-005
+    title: Always shippable
+    severity: high
+    check: "every batch acceptance preserves a runnable state"

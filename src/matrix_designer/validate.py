@@ -64,6 +64,10 @@ def validate_rules(bundle: Dict[str, Any]) -> List[Dict[str, str]]:
     # DESIGN-004 — acceptance must exist at the bundle level
     if not bundle.get("acceptance", {}).get("functional"):
         fail("DESIGN-004", "high", "no functional acceptance criteria for the whole solution")
+    # DESIGN-005 — the dependency graph must be acyclic
+    cycle = _first_cycle({b.get("id"): list(b.get("depends_on", [])) for b in roadmap})
+    if cycle:
+        fail("DESIGN-005", "high", f"dependency cycle: {' → '.join(cycle)}")
     # GAME-006 — web-games must declare a visual acceptance target
     if bundle.get("domain") == "web-game":
         if not (bundle.get("visual_target") and bundle.get("acceptance", {}).get("visual")):
@@ -75,7 +79,39 @@ def validate_rules(bundle: Dict[str, Any]) -> List[Dict[str, str]]:
     return violations
 
 
+def _first_cycle(graph: Dict[Any, List[Any]]) -> List[Any]:
+    """Return one cycle path if the dependency graph has one, else []."""
+    WHITE, GREY, BLACK = 0, 1, 2
+    color = {n: WHITE for n in graph}
+    stack: List[Any] = []
+
+    def visit(n: Any) -> List[Any]:
+        color[n] = GREY
+        stack.append(n)
+        for dep in graph.get(n, []):
+            if dep not in color:
+                continue
+            if color[dep] == GREY:
+                return stack[stack.index(dep):] + [dep]
+            if color[dep] == WHITE:
+                found = visit(dep)
+                if found:
+                    return found
+        color[n] = BLACK
+        stack.pop()
+        return []
+
+    for node in graph:
+        if color[node] == WHITE:
+            found = visit(node)
+            if found:
+                return found
+    return []
+
+
 def verdict(bundle: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    from .rules import load_rules
+
     schema_errors = validate_schema(bundle)
     rule_violations = validate_rules(bundle)
     critical = [v for v in rule_violations if v["severity"] in ("high", "critical")]
@@ -89,6 +125,7 @@ def verdict(bundle: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         "status": status,
         "schema_errors": schema_errors,
         "violations": rule_violations,
+        "rules_catalog": sorted(load_rules().keys()),
         "summary": f"{status}: {len(schema_errors)} schema errors, {len(rule_violations)} rule violations",
     }
     return status, report

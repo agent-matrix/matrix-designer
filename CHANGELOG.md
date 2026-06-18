@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — Design rules as signed packs (batch-08)
+- Formalize the rule catalog in `packs/*/rules.yaml`: DESIGN-* (cross-domain), GAME-* (web-game),
+  APP-* (saas). New `rules.py` loader is one source of truth; `validate.py` adds DESIGN-005
+  (acyclic dependency graph) and surfaces `rules_catalog` in the verdict.
+- Tests: unscoped batch → rejected; game without visual acceptance → needs-repair; dependency
+  cycle → needs-repair. `docs/GOVERNANCE.md` documents the families (to be promoted to
+  matrix-definitions).
+
 ## 0.3.0 — Designer HTTP service (batch-01)
 - New `matrix_designer.service` (FastAPI): `POST /design/blueprints`, `POST /design/refine`,
   `GET /healthz` — the brain over HTTP for Matrix Builder's control plane, alongside the MCP

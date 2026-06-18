@@ -1,0 +1,27 @@
+id: design-rules-v1
+title: Matrix Designer — cross-domain design rules
+description: >
+  The DESIGN-* family: governance that applies to every Design Bundle regardless of domain.
+  Proposed for promotion into Matrix Definitions as a signed pack. validate.py is the
+  reference implementation of these checks (AI proposes the design; these rules enforce it).
+rules:
+  - id: DESIGN-001
+    title: Every batch is scoped
+    severity: high
+    check: "each batch declares allowed_files (no improvising)"
+  - id: DESIGN-002
+    title: Every batch has acceptance
+    severity: high
+    check: "each batch declares acceptance criteria"
+  - id: DESIGN-003
+    title: Dependencies are real
+    severity: medium
+    check: "batch depends_on references an existing batch id"
+  - id: DESIGN-004
+    title: Solution acceptance exists
+    severity: high
+    check: "the bundle declares functional acceptance criteria"
+  - id: DESIGN-005
+    title: Dependency graph is acyclic
+    severity: high
+    check: "the batch depends_on graph has no cycles"
