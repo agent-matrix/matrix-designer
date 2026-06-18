@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1 — Makefile + version fix
+- Add a Makefile: `make install` / `make test` / `make run` (HTTP service) / `make run-mcp` — servers
+  ready in three commands. README documents it and the Hugging Face co-deployment.
+- Fix the in-process `__version__` (health endpoint) to match the package version.
+
 ## 0.6.0 — Integration shipped (batch-12)
 - Matrix Designer is wired end-to-end into Matrix Builder's Blueprint Details page: real
   multi-agent output (overview, architecture, batches, file plan, Matrix rules), a Design Brain

@@ -114,6 +114,21 @@ so CI and offline use never break. (A CrewAI back-end is also available behind t
 
 ## Quickstart
 
+**With Make** (servers ready in three commands):
+
+```bash
+make install      # editable install + service & MCP extras
+make test         # run the suite
+make run          # HTTP service on :8077 (POST /design/blueprints, /design/refine, GET /healthz)
+make run-mcp      # or the stdio MCP server
+```
+
+> **On Hugging Face:** Matrix Designer is installed and started **inside the Matrix Builder Space**
+> automatically — one Space runs Matrix Builder + Matrix Designer together, ready to create projects
+> and use GitPilot as the AI coder. See `matrix-builder/docs/deploy-huggingface.md`.
+
+**With pip:**
+
 ```bash
 pip install matrix-designer            # core (deterministic, offline)
 pip install "matrix-designer[agentic,mcp]"   # + CrewAI crew + MCP server
