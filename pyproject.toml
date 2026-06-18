@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "matrix-designer"
-version = "0.2.0"
+version = "0.3.0"
 description = "The Brain of the Matrix ecosystem — turns an idea + chosen blueprint into a governed Design Bundle with every batch, via an agentic LLM crew. The 'batches guy'."
 readme = "README.md"
 license = { text = "MIT" }
@@ -20,10 +20,12 @@ dependencies = [
 agentic = ["crewai>=0.40"]          # the default agentic backend
 langgraph = ["langgraph>=0.2"]      # alternative backend
 mcp = ["mcp>=1.2"]                   # matrix-designer-mcp server runtime
+service = ["fastapi>=0.110", "uvicorn>=0.27", "pydantic>=2"]  # HTTP service
 dev = ["pytest>=8", "ruff>=0.4"]
 
 [project.scripts]
 mdesign = "matrix_designer.cli:main"
+matrix-designer-service = "matrix_designer.service:main"
 
 [project.urls]
 Homepage = "https://ruslanmv.com"

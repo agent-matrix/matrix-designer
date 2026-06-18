@@ -109,6 +109,19 @@ mdesign validate design-bundle.json
 mdesign export   design-bundle.json -o mb-export.json   # idea-request + blueprint overlay + mb next[]
 ```
 
+### As a service (how Matrix Builder's control plane calls it)
+
+```bash
+pip install "matrix-designer[service]"
+python -m matrix_designer.service           # FastAPI on :8077
+#   POST /design/blueprints {idea}              -> 3 blueprints + details
+#   POST /design/refine     {idea, message}     -> orchestrator chat refinement
+#   GET  /healthz
+```
+
+watsonx-only: a non-approved provider is refused; with no provider the deterministic runner
+answers, so the service never blocks and never calls an unapproved model.
+
 ### As an MCP server (how Matrix Builder calls it)
 
 ```bash

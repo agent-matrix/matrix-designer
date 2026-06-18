@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — Designer HTTP service (batch-01)
+- New `matrix_designer.service` (FastAPI): `POST /design/blueprints`, `POST /design/refine`,
+  `GET /healthz` — the brain over HTTP for Matrix Builder's control plane, alongside the MCP
+  server. Core handlers are plain functions (testable without FastAPI).
+- watsonx-only `provider_guard`: a non-approved LLM provider is refused; deterministic runner
+  answers when none is set. `[service]` extra + `matrix-designer-service` entry point.
+
 ## 0.2.0 — LangGraph multi-agent brain
 - New **LangGraph `StateGraph`** of specialist agents (Planner → Requirements → Architect →
   UI/UX → Batch Planner → Quality → Synthesizer) that designs the **top-3 blueprints**
