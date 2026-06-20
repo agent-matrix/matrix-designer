@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from .blueprint import (
-    ArchitectureNode, BlueprintBatch, BlueprintCandidate, BlueprintDetails, ChatMessage, FilePlanItem,
+    ArchitectureNode, BlueprintBatch, BlueprintCandidate, BlueprintDetails, FilePlanItem,
 )
 from .state import DesignState, TIERS
 

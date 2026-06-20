@@ -1,5 +1,4 @@
 """batch-08 — Matrix Definitions design rules: the validator enforces the catalog."""
-import copy
 import json
 import os
 

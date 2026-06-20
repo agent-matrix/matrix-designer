@@ -17,10 +17,11 @@ try:
 except Exception:  # pragma: no cover
     yaml = None
 
-PACKS_DIR = os.environ.get(
-    "MATRIX_DESIGNER_PACKS",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "packs"),
-)
+from ._resources import packs_dir
+
+# Resolved via the package data resolver (MATRIX_DESIGNER_PACKS env → packaged → legacy
+# repo-root), so a pip-installed wheel and editable checkouts both find the packs.
+PACKS_DIR = packs_dir()
 
 
 @lru_cache(maxsize=1)
@@ -29,7 +30,7 @@ def load_rules() -> Dict[str, Dict[str, Any]]:
     catalog: Dict[str, Dict[str, Any]] = {}
     if yaml is None:
         return catalog
-    for path in glob.glob(os.path.join(PACKS_DIR, "*", "rules.yaml")):
+    for path in glob.glob(os.path.join(packs_dir(), "*", "rules.yaml")):
         try:
             doc = yaml.safe_load(open(path, encoding="utf-8")) or {}
         except Exception:

@@ -16,6 +16,6 @@ The bundle is itself validated against Matrix Definitions design-packs, so the b
 never approves itself: AI may *propose* design; the Definitions *validate* it.
 """
 
-__version__ = "0.6.1"
+__version__ = "0.6.2"
 
 from .models import DesignBundle  # noqa: F401

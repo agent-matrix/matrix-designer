@@ -9,16 +9,17 @@ Two layers:
 from __future__ import annotations
 
 import json
-import os
 from typing import Any, Dict, List, Tuple
 
-SCHEMA_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "schemas", "design-bundle.schema.json"
-)
+from ._resources import schema_path
+
+# Kept as a module attribute for backwards compatibility; resolved via the package
+# data resolver so a pip-installed wheel and editable checkouts both work.
+SCHEMA_PATH = str(schema_path())
 
 
 def _load_schema() -> Dict[str, Any]:
-    with open(SCHEMA_PATH, "r", encoding="utf-8") as fh:
+    with open(schema_path(), "r", encoding="utf-8") as fh:
         return json.load(fh)
 
 

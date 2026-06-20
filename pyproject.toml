@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "matrix-designer"
-version = "0.6.1"
+version = "0.6.2"
 description = "The Brain of the Matrix ecosystem — turns an idea + chosen blueprint into a governed Design Bundle with every batch, via an agentic LLM crew. The 'batches guy'."
 readme = "README.md"
 license = { text = "MIT" }
@@ -31,5 +31,24 @@ matrix-designer-service = "matrix_designer.service:main"
 Homepage = "https://ruslanmv.com"
 Ecosystem = "https://github.com/agent-matrix/matrix-builder"
 
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+# Default-ish rule set (pyflakes + a slice of pycodestyle). E701/E702 are intentionally
+# allowed: the codebase uses compact one-liners by design.
+select = ["E4", "E7", "E9", "F", "W"]
+ignore = ["E701", "E702", "E741"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Ship the schema + design-packs inside the wheel so `pip install matrix-designer`
+# works (validate/load_pack need them). Without this they would be excluded.
+[tool.setuptools.package-data]
+matrix_designer = [
+  "_data/schemas/*.json",
+  "_data/packs/*/*.yaml",
+  "_data/packs/*/*.json",
+]

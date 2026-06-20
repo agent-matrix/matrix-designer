@@ -1,0 +1,5 @@
+# Ensure the schema + design-packs are included in the sdist (wheels use package-data).
+recursive-include src/matrix_designer/_data *.json *.yaml
+include schemas/design-bundle.schema.json
+recursive-include packs *.yaml *.json
+include VERSION LICENSE README.md CHANGELOG.md
