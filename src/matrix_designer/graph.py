@@ -14,7 +14,7 @@ runs offline and in CI.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from . import agents
 from .state import DesignState, new_state

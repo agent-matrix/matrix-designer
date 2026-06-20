@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  push:
+    branches: ["main", "claude/**", "dev*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (editable, with extras)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[service,mcp,dev]"
+      - name: Lint (ruff)
+        run: ruff check src tests
+      - name: Test
+        run: pytest -q
+
+  wheel-smoke:
+    # Builds the wheel and runs it from a CLEAN install — this is the gate that catches
+    # the "schemas/ and packs/ not packaged" class of bug.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build wheel + sdist
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+      - name: Install the built wheel in a clean venv and smoke-test the packaged data
+        run: |
+          python -m venv /tmp/wheelenv
+          . /tmp/wheelenv/bin/activate
+          pip install --upgrade pip
+          pip install dist/*.whl jsonschema pyyaml
+          # Run OUTSIDE the source tree so only the installed package is used.
+          cd /tmp
+          python - <<'PY'
+          from matrix_designer.validate import verdict
+          from matrix_designer.packs import load_pack
+          from matrix_designer.rules import rule_ids
+          from matrix_designer._resources import schema_path
+          import os
+          assert os.path.exists(schema_path()), "schema not packaged in the wheel"
+          game = load_pack("web-game-platformer-v1")
+          assert game.get("id") == "web-game-platformer-v1" and game.get("rules"), "packs not packaged"
+          fams = {r.split("-")[0] for r in rule_ids()}
+          assert {"DESIGN", "GAME", "APP"}.issubset(fams), f"rule families missing: {fams}"
+          # verdict() must run (schema present) — exercises the previously-crashing path.
+          verdict({"schema_version": "matrix.designer.bundle/v1", "design_id": "x", "project": "p",
+                   "framework_decision": {"stack": ["Phaser"]},
+                   "batch_roadmap": [{"id": "b1", "name": "n", "purpose": "p",
+                                      "allowed_files": ["a"], "acceptance": ["x"]}],
+                   "provenance": {}, "acceptance": {"functional": ["builds"]}, "domain": "app"})
+          print("wheel smoke: OK — schema + packs + rules all packaged")
+          PY

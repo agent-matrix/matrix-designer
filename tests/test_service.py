@@ -1,5 +1,4 @@
 """The HTTP service handlers: 3 blueprints, refinement, and the watsonx-only guard."""
-import os
 
 import pytest
 
@@ -36,7 +35,7 @@ def test_health():
 
 
 def test_fastapi_app_if_available():
-    fastapi = pytest.importorskip("fastapi")
+    pytest.importorskip("fastapi")
     from fastapi.testclient import TestClient
     from matrix_designer.service import build_app
     client = TestClient(build_app())

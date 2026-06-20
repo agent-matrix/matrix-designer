@@ -19,17 +19,19 @@ try:
 except Exception:  # pragma: no cover
     yaml = None
 
-PACKS_DIR = os.environ.get(
-    "MATRIX_DESIGNER_PACKS",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "packs"),
-)
+from ._resources import packs_dir
+
+# Resolved via the package data resolver (MATRIX_DESIGNER_PACKS env → packaged → legacy
+# repo-root), so a pip-installed wheel and editable checkouts both find the packs.
+PACKS_DIR = packs_dir()
 
 
 @lru_cache(maxsize=32)
 def load_pack(pack_id: str) -> Dict[str, Any]:
     """Load packs/<pack_id>/pack.yaml (falls back to a minimal generic pack)."""
-    path_yaml = os.path.join(PACKS_DIR, pack_id, "pack.yaml")
-    path_json = os.path.join(PACKS_DIR, pack_id, "pack.json")
+    base = packs_dir()
+    path_yaml = os.path.join(base, pack_id, "pack.yaml")
+    path_json = os.path.join(base, pack_id, "pack.json")
     if yaml is not None and os.path.exists(path_yaml):
         with open(path_yaml, "r", encoding="utf-8") as fh:
             return yaml.safe_load(fh) or {}

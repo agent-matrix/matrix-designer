@@ -155,8 +155,22 @@ python -m matrix_designer.service           # FastAPI on :8077
 #   GET  /healthz
 ```
 
-watsonx-only: a non-approved provider is refused; with no provider the deterministic runner
-answers, so the service never blocks and never calls an unapproved model.
+Provider-agnostic: with no provider the deterministic runner answers, so the service never blocks
+and never calls an unapproved model; an operator MAY restrict providers via
+`MATRIX_DESIGNER_ALLOWED_PROVIDERS`.
+
+**Trust boundary & hardening (enterprise).** The service is meant to run *inside* Matrix Builder's
+control plane (a trusted internal hop), so it ships **open by default** — the production behaviour is
+unchanged. For an exposed deployment, opt into hardening with env vars (all default-off):
+
+| Env var | Effect |
+|---|---|
+| `MATRIX_DESIGNER_API_KEY` | require `Authorization: Bearer <key>` (or `X-API-Key`) on `/design/*`; `/healthz` stays open |
+| `MATRIX_DESIGNER_CORS_ORIGINS` | comma-separated CORS allow-list (e.g. `https://build.matrixhub.io`) |
+| `MATRIX_DESIGNER_HOST` / `MATRIX_DESIGNER_PORT` | bind host/port (default `0.0.0.0:8077`) |
+| `MATRIX_DESIGNER_MAX_IDEA` | max idea length (default 8000; empty/oversized → `422`) |
+
+A standalone [`Dockerfile`](Dockerfile) is provided (`docker build -t matrix-designer . && docker run -p 8077:8077 matrix-designer`).
 
 ### As an MCP server (how Matrix Builder calls it)
 
@@ -171,7 +185,8 @@ but each candidate is now derived from the brain. See [`docs/MCP.md`](docs/MCP.m
 
 ## The Design Bundle
 
-The governed output artifact ([`schemas/design-bundle.schema.json`](schemas/design-bundle.schema.json)):
+The governed output artifact ([`design-bundle.schema.json`](src/matrix_designer/_data/schemas/design-bundle.schema.json),
+shipped inside the package so `pip install` works offline):
 `goal_analysis · framework_decision · visual_target · architecture · contracts · asset_manifest ·
 acceptance · batch_roadmap · governance · provenance` (content-addressed by `design_digest`).
 

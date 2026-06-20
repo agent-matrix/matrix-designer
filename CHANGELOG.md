@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.2 — packaging fix + CI + service hardening (non-breaking)
+- **Fix `pip install matrix-designer`** (critical): the schema and design-packs now ship
+  **inside the package** (`matrix_designer/_data`) via `package-data`, so a wheel install no
+  longer crashes `validate`/`verdict` with `FileNotFoundError` and no longer silently degrades
+  packs to `generic-v1` (0 rules). A new `_resources.py` resolver finds the data in the wheel,
+  via `MATRIX_DESIGNER_DATA`/`MATRIX_DESIGNER_PACKS`, or the legacy repo-root — editable
+  checkouts and existing deployments are unchanged.
+- **CI** (`.github/workflows/ci.yml`): ruff + pytest on Python 3.10–3.12, plus a **wheel-smoke**
+  job that installs the built wheel in a clean env and asserts the schema + packs are packaged
+  (the gate that catches this class of bug). Added a `[tool.ruff]` config.
+- **Service hardening (all default-off; production behaviour unchanged):** typed request models
+  (empty/oversized `idea` → `422`), an empty-idea guard in the core handlers, and optional
+  `MATRIX_DESIGNER_API_KEY` auth + `MATRIX_DESIGNER_CORS_ORIGINS`. Documented the trust boundary.
+- **Robust agentic parsing:** LLM `batch_roadmap` JSON with extra/loose keys no longer raises
+  (filtered + coerced); added unit tests for the previously-untested agentic parse path.
+- Added a standalone **`Dockerfile`** and a packaging-regression test. Version → 0.6.2.
+
 ## 0.6.1 — Makefile + version fix
 - Add a Makefile: `make install` / `make test` / `make run` (HTTP service) / `make run-mcp` — servers
   ready in three commands. README documents it and the Hugging Face co-deployment.

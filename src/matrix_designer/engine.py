@@ -28,6 +28,36 @@ from .packs import load_pack
 # Which agentic backend to use: "crewai" | "langgraph" | "langflow" | "auto" | "off"
 DESIGN_BACKEND = os.environ.get("MATRIX_DESIGNER_BACKEND", "auto")
 
+# Fields the Batch dataclass accepts — used to filter LLM output defensively so an extra
+# or missing key from a model never raises (the agentic layer must never break the contract).
+_BATCH_FIELDS = {"id", "name", "purpose", "allowed_files", "acceptance",
+                 "depends_on", "new_features", "must_not_change"}
+_BATCH_LISTS = {"allowed_files", "acceptance", "depends_on", "new_features", "must_not_change"}
+
+
+def _batch_from_dict(b: Dict[str, Any]) -> Optional[Batch]:
+    """Build a Batch from arbitrary LLM JSON: keep only known keys, coerce list fields,
+    and supply safe defaults. Returns None if the batch has no usable id."""
+    bid = str(b.get("id") or "").strip()
+    if not bid:
+        return None
+    kept = {k: v for k, v in b.items() if k in _BATCH_FIELDS}
+    kept["id"] = bid
+    kept.setdefault("name", bid)
+    kept.setdefault("purpose", "")
+    for key in _BATCH_LISTS:
+        val = kept.get(key)
+        if val is None:
+            kept[key] = []
+        elif isinstance(val, str):
+            kept[key] = [val]
+        elif not isinstance(val, list):
+            kept[key] = list(val) if isinstance(val, (tuple, set)) else [str(val)]
+    try:
+        return Batch(**kept)
+    except Exception:
+        return None
+
 
 # --------------------------------------------------------------------------------------
 # Public API
@@ -111,7 +141,12 @@ class DesignEngine:
             data = json.loads(m.group(0))
         except Exception:
             return None
-        roadmap = [Batch(**b) for b in data.get("batch_roadmap", []) if isinstance(b, dict) and b.get("id")]
+        roadmap = [
+            _batch_from_dict(b)
+            for b in data.get("batch_roadmap", [])
+            if isinstance(b, dict) and b.get("id")
+        ]
+        roadmap = [b for b in roadmap if b is not None]
         if not roadmap:
             return None
         return DesignBundle(
