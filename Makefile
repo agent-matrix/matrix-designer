@@ -21,7 +21,7 @@ test: ## Run the test suite
 	$(PY) -m pytest -q
 
 run: ## Start the HTTP service (FastAPI) — the brain over HTTP for Matrix Builder
-	@echo "Matrix Designer service → http://$(HOST):$(PORT)  (POST /design/blueprints, /design/refine, GET /healthz)"
+	@echo "Matrix Designer service → http://$(HOST):$(PORT)  (POST /design/{blueprints,refine,bundle,review}, GET /healthz)"
 	MATRIX_DESIGNER_PORT=$(PORT) $(PY) -m matrix_designer.service
 
 run-mcp: ## Start the stdio MCP server (matrix-designer)

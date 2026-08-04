@@ -119,7 +119,7 @@ so CI and offline use never break. (A CrewAI back-end is also available behind t
 ```bash
 make install      # editable install + service & MCP extras
 make test         # run the suite
-make run          # HTTP service on :8077 (POST /design/blueprints, /design/refine, GET /healthz)
+make run          # HTTP service on :8077 (POST /design/{blueprints,refine,bundle,review}, GET /healthz)
 make run-mcp      # or the stdio MCP server
 ```
 
@@ -150,10 +150,16 @@ mdesign export   design-bundle.json -o mb-export.json   # idea-request + bluepri
 ```bash
 pip install "matrix-designer[service]"
 python -m matrix_designer.service           # FastAPI on :8077
-#   POST /design/blueprints {idea}              -> 3 blueprints + details
-#   POST /design/refine     {idea, message}     -> orchestrator chat refinement
+#   POST /design/blueprints {idea}                    -> 3 blueprints + details
+#   POST /design/refine     {idea, message}           -> orchestrator chat refinement
+#   POST /design/bundle     {idea, candidate_id}      -> the full Design Bundle, validated
+#   POST /design/review     {bundle}                  -> schema + design-rule verdict
 #   GET  /healthz
 ```
+
+The four endpoints are one chain — pick a blueprint, adjust it, design the bundle, govern it —
+and a control plane may enter at any point. `/design/bundle` and `/design/review` are the same
+code paths `mdesign design` and `mdesign validate` have always used, over HTTP.
 
 Provider-agnostic: with no provider the deterministic runner answers, so the service never blocks
 and never calls an unapproved model; an operator MAY restrict providers via
