@@ -4,6 +4,8 @@
 #   docker run -p 8077:8077 matrix-designer
 #       POST /design/blueprints {idea}          -> 3 blueprints + details
 #       POST /design/refine     {idea, message} -> orchestrator chat refinement
+#       POST /design/bundle     {idea, candidate_id} -> the full Design Bundle, validated
+#       POST /design/review     {bundle}        -> schema + design-rule verdict
 #       GET  /healthz
 #
 # Hardening (all optional, default off — see src/matrix_designer/service.py):
