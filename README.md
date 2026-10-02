@@ -214,3 +214,7 @@ of the flat prototype — is in
 ---
 
 <div align="center"><sub>🧠 <b>Matrix Designer</b> · Created by <a href="https://ruslanmv.com">Ruslan Magana Vsevolodovna</a> · MIT licensed</sub></div>
+
+## dmind diagram interchange
+
+Generate `dmind/v1` diagrams and design from edited graphs through additive HTTP, MCP and CLI entry points. See [dmind interoperability](docs/DMIND.md) and [the complete development plan](docs/DMIND_DEVELOPMENT_PLAN.md).
