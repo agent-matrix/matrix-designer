@@ -2,7 +2,7 @@
 
 The additive dmind API converts diagrams into reviewable system designs without starting a build. All previous blueprint, bundle, review, MCP and CLI contracts remain available.
 
-The paired DayPilot feature is named **dmind**, under **Diagrams**. See [the complete development plan](DMIND_DEVELOPMENT_PLAN.md) for delivered scope, future phases and acceptance gates.
+The paired DayPilot feature is named **dmind**, under **Diagrams**. The native file format is `.dmind` (plain `dmind/v1` JSON; a ZIP container comes later). See [the complete development plan](DMIND_DEVELOPMENT_PLAN.md) for the batch plan (B0 to B10), the B0 verification record and acceptance gates.
 
 ## Quick start
 
@@ -25,3 +25,5 @@ MCP tools: `generate_diagram(topic, content, kind, use_designer, candidate_id)` 
 All HTTP routes use the existing optional `MATRIX_DESIGNER_API_KEY` protection. Outline mode makes no provider call; designer mode follows the same provider guard as existing design endpoints.
 
 The packaged schema is `_data/schemas/dmind.schema.json`; [the golden order-system fixture](../examples/dmind/order-system.dmind.json) is mirrored in DayPilot. Both validators enforce encoded JSON and graph limits, unique IDs, existing endpoints and forest constraints in addition to the JSON Schema. Keep these validators and fixtures synchronized in cross-repository changes.
+
+The shared contract corpus [`examples/dmind/contract-cases.json`](../examples/dmind/contract-cases.json) is run against the validator, the outline parser and the JSON Schema (`tests/test_dmind_contract_parity.py`); DayPilot runs the same file against its Python validator and TypeScript editor. Test digests pin the schema, fixture and corpus in both repositories, so change them together.
