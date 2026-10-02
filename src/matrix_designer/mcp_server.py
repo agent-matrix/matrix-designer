@@ -102,10 +102,25 @@ def refine_design(idea: str, message: str, candidate_id: str = "standard",
     return out
 
 
+def generate_diagram(topic: str, content: str = "", kind: str = "mindmap",
+                     use_designer: bool = False, candidate_id: str = "standard") -> Dict[str, Any]:
+    """Generate an editable dmind/v1 diagram from an outline or a design proposal."""
+    from .dmind import diagram_handler
+    return diagram_handler(topic, content, kind, candidate_id, use_designer)
+
+
+def design_from_diagram(diagram: Dict[str, Any], candidate_id: str = "standard") -> Dict[str, Any]:
+    """Propose a newly validated Design Bundle from untrusted diagram data."""
+    from .dmind import diagram_bundle_handler
+    return diagram_bundle_handler(diagram, candidate_id)
+
+
 def build_server():  # pragma: no cover
     if not _HAVE_MCP:
         raise RuntimeError("Install the MCP extra:  pip install 'matrix-designer[mcp]'")
     mcp = FastMCP("matrix-designer")
+    mcp.tool()(generate_diagram)
+    mcp.tool()(design_from_diagram)
     mcp.tool()(analyze_idea)
     mcp.tool()(decompose_reference)
     mcp.tool()(propose_architecture)

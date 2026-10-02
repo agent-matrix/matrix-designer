@@ -53,9 +53,40 @@ def main(argv=None) -> int:
 
     vp = sub.add_parser("validate"); vp.add_argument("bundle")
     ep = sub.add_parser("export"); ep.add_argument("bundle"); ep.add_argument("-o", "--out")
+    dp = sub.add_parser("diagram", help="Generate a dmind/v1 diagram")
+    dp.add_argument("--topic", required=True)
+    dp.add_argument("--outline", help="UTF-8 text or Markdown file")
+    dp.add_argument("--kind", choices=["mindmap", "flowchart", "system"], default="mindmap")
+    dp.add_argument("--designer", action="store_true")
+    dp.add_argument("--candidate", default="standard")
+    dp.add_argument("-o", "--out")
+    db = sub.add_parser("diagram-bundle", help="Design and validate from a dmind/v1 graph")
+    db.add_argument("diagram")
+    db.add_argument("--candidate", default="standard")
+    db.add_argument("-o", "--out")
     sub.add_parser("mcp")
 
     args = p.parse_args(argv)
+
+    if args.cmd in ("diagram", "diagram-bundle"):
+        from .dmind import diagram_handler, diagram_bundle_handler
+        try:
+            if args.cmd == "diagram":
+                from pathlib import Path
+                content = Path(args.outline).read_text(encoding="utf-8") if args.outline else ""
+                result = diagram_handler(args.topic, content, args.kind, args.candidate, args.designer)
+                out = result.get("diagram", result)
+            else:
+                result = diagram_bundle_handler(_load(args.diagram), args.candidate)
+                out = result
+            if result.get("error"):
+                print(result["error"], file=sys.stderr)
+                return 2
+            _emit(out, args.out)
+            return 0
+        except (ValueError, OSError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
 
     if args.cmd == "blueprints":
         out = design_blueprints(args.idea); out.pop("_state", None)

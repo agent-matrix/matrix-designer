@@ -264,6 +264,20 @@ try:  # pragma: no cover - pydantic ships with the [service] extra
         constraints: Optional[Dict[str, Any]] = None
         quality_level: str = Field("", max_length=32)
 
+    class DiagramIn(BaseModel):
+        topic: str = Field(..., min_length=1, max_length=200)
+        content: str = Field("", max_length=100000)
+        kind: str = "mindmap"
+        candidate_id: str = Field("standard", max_length=64)
+        use_designer: bool = False
+
+    class DiagramBundleIn(BaseModel):
+        diagram: Dict[str, Any]
+        candidate_id: str = Field("standard", max_length=64)
+
+    class DiagramImportIn(BaseModel):
+        bundle: Dict[str, Any]
+
     class ReviewIn(BaseModel):
         bundle: Dict[str, Any]
         target: str = Field("", max_length=512)
@@ -330,6 +344,31 @@ def build_app():  # pragma: no cover - exercised when fastapi is installed
     @app.post("/design/review")
     def _review(body: ReviewIn, _: None = Depends(require_key)) -> Dict[str, Any]:
         return review_handler(body.bundle, body.target, body.kind)
+
+    def diagram_call(call, *args):
+        try:
+            result = call(*args)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        if isinstance(result, dict) and result.get("error"):
+            raise HTTPException(status_code=400, detail=result["error"])
+        return result
+
+    @app.post("/design/diagrams")
+    def _diagram(body: DiagramIn, _: None = Depends(require_key)) -> Dict[str, Any]:
+        from .dmind import diagram_handler
+        return diagram_call(diagram_handler, body.topic, body.content, body.kind,
+                            body.candidate_id, body.use_designer)
+
+    @app.post("/design/diagrams/import-bundle")
+    def _diagram_import(body: DiagramImportIn, _: None = Depends(require_key)) -> Dict[str, Any]:
+        from .dmind import from_bundle
+        return {"diagram": diagram_call(from_bundle, body.bundle)}
+
+    @app.post("/design/diagrams/bundle")
+    def _diagram_bundle(body: DiagramBundleIn, _: None = Depends(require_key)) -> Dict[str, Any]:
+        from .dmind import diagram_bundle_handler
+        return diagram_call(diagram_bundle_handler, body.diagram, body.candidate_id)
 
     return app
 
