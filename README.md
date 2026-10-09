@@ -218,3 +218,10 @@ of the flat prototype — is in
 ## dmind diagram interchange
 
 Generate `dmind/v1` diagrams and design from edited graphs through additive HTTP, MCP and CLI entry points. See [dmind interoperability](docs/DMIND.md) and [the complete development plan](docs/DMIND_DEVELOPMENT_PLAN.md).
+
+Quick use:
+
+- `.dmind` files are JSON (`dmind/v1`) or, with attachments, a strict ZIP bundle. Pack and unpack with `matrix-designer dmind-pack` / `dmind-unpack`; hostile archives (traversal, symlinks, ZIP64, bombs, bad CRCs) are refused.
+- Patches (`dmind-patch/v1`, `matrix_designer.dmind_patch`) apply only to the exact document state they were written for and are all-or-nothing; handoffs (`matrix_designer.dmind_handoff`) trace requirements to allowed files and never execute anything.
+- The editor, with screenshots and a step-by-step guide, lives in DayPilot's **Diagrams** tab; its README describes how to start, preview, edit, check, save and share.
+- Verification evidence: [certification evidence](docs/DMIND_CERTIFICATION_EVIDENCE.md).

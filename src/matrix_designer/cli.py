@@ -64,9 +64,25 @@ def main(argv=None) -> int:
     db.add_argument("diagram")
     db.add_argument("--candidate", default="standard")
     db.add_argument("-o", "--out")
+    pk = sub.add_parser("dmind-pack", help="Pack a diagram and attachments into a .dmind bundle")
+    pk.add_argument("diagram")
+    pk.add_argument("--attach", action="append", default=[], metavar="TOPIC_ID=FILE",
+                    help="attach FILE (image, PDF, txt or md; max 5 MB) to a topic; repeatable")
+    pk.add_argument("-o", "--out", required=True)
+    up = sub.add_parser("dmind-unpack", help="Unpack a .dmind bundle into a folder")
+    up.add_argument("bundle")
+    up.add_argument("-d", "--dir", required=True)
     sub.add_parser("mcp")
 
     args = p.parse_args(argv)
+
+    if args.cmd in ("dmind-pack", "dmind-unpack"):
+        from .dmind_bundle_cli import pack, unpack
+        try:
+            return pack(args) if args.cmd == "dmind-pack" else unpack(args)
+        except (ValueError, OSError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
 
     if args.cmd in ("diagram", "diagram-bundle"):
         from .dmind import diagram_handler, diagram_bundle_handler
@@ -77,12 +93,19 @@ def main(argv=None) -> int:
                 result = diagram_handler(args.topic, content, args.kind, args.candidate, args.designer)
                 out = result.get("diagram", result)
             else:
-                result = diagram_bundle_handler(_load(args.diagram), args.candidate)
+                from pathlib import Path
+                from .dmind_file import read_dmind
+                result = diagram_bundle_handler(read_dmind(Path(args.diagram).read_bytes()), args.candidate)
                 out = result
             if result.get("error"):
                 print(result["error"], file=sys.stderr)
                 return 2
-            _emit(out, args.out)
+            if args.cmd == "diagram" and args.out and "schema_version" in out:
+                from pathlib import Path
+                from .dmind_file import write_dmind
+                Path(args.out).write_bytes(write_dmind(out))  # a .dmind file
+            else:
+                _emit(out, args.out)
             return 0
         except (ValueError, OSError) as exc:
             print(str(exc), file=sys.stderr)
